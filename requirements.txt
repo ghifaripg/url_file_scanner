@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+requests
+joblib
+numpy
+pefile
+python-whois
+tldextract
+xgboost
+
