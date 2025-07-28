@@ -124,30 +124,48 @@ def extract_features(url):
 
 def check_whois_safety(full_domain):
     try:
-        # Use base domain for WHOIS
+        # Extract base domain for WHOIS
         extracted = tldextract.extract(full_domain)
         base_domain = f"{extracted.domain}.{extracted.suffix}"
+        print(f"[DEBUG] Checking WHOIS safety for base domain: {base_domain}")
 
         w = whois.whois(base_domain)
+        print(f"[DEBUG] WHOIS raw data: {w}")
+
         creation_date = w.creation_date
         country = w.country
+        domain_name = w.domain_name
 
+        # Handle case where domain info is completely missing
+        if not domain_name:
+            print(f"[WHOIS] No domain name found in WHOIS record.")
+            return False
+
+        # Normalize list creation dates
         if isinstance(creation_date, list):
             creation_date = creation_date[0]
 
-        is_new = not creation_date or (datetime.now() - creation_date).days < 180
-        no_country = not country
+        # Logic: domain is unsafe if too new
+        is_new = False
+        if creation_date:
+            age_days = (datetime.now() - creation_date).days
+            is_new = age_days < 180
+            print(f"[WHOIS] Domain age: {age_days} days")
+        else:
+            print(f"[WHOIS] No creation date available.")
 
+        # Final decision
         if is_new:
-            print(f"[WHOIS] Domain is too new: {base_domain} (Created: {creation_date})")
-        if no_country:
-            print(f"[WHOIS] No country info for: {base_domain}")
+            print(f"[WHOIS] Domain is considered new → unsafe.")
+            return False
 
-        return not (is_new or no_country)
-    
+        print(f"[WHOIS] WHOIS check passed for: {base_domain}")
+        return True
+
     except Exception as e:
         print(f"[WHOIS ERROR] Failed to lookup {full_domain} → {e}")
         return False
+
 
 def is_definitely_malicious_url(url):
     parsed = urlparse(url)
