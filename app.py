@@ -38,12 +38,21 @@ feature_names = [
     "Has Fragment", "Has Anchor", "Entropy of URL", "Entropy of Domain"
 ]
 
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+import whois
+import sys
+
 @app.post("/predict/url")
 async def predict_url(request: URLRequest):
     url = request.url
     if not url:
         raise HTTPException(status_code=400, detail="No URL provided")
     
+    print(f"[DEBUG] Python version: {sys.version}")
+    print(f"[DEBUG] WHOIS module path: {whois.__file__}")
+    print(f"[DEBUG] Incoming URL: {url}")
+
     if is_definitely_malicious_url(url):
         return JSONResponse(content={
             "result": "Malicious",
@@ -56,7 +65,10 @@ async def predict_url(request: URLRequest):
         prediction = model.predict([features])[0]
         confidence = float(np.max(model.predict_proba([features])[0])) if hasattr(model, "predict_proba") else None
         parsed_domain = urlparse(url).netloc
+        
+        print(f"[DEBUG] Performing WHOIS safety check for domain: {parsed_domain}")
         whois_safe = check_whois_safety(parsed_domain)
+        print(f"[DEBUG] WHOIS result (safe?): {whois_safe}")
 
         if prediction == 1:
             if confidence is not None and 0.61 <= confidence <= 0.79:
@@ -91,7 +103,9 @@ async def predict_url(request: URLRequest):
         })
 
     except Exception as e:
+        print(f"[ERROR] Exception occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/predict/file")
