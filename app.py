@@ -62,7 +62,7 @@ async def predict_url(request: URLRequest):
 
         whois_safe = True if skip_whois else check_whois_safety(parsed_domain)
 
-         if prediction == 1:
+        if prediction == 1:
             if confidence is not None and confidence > 0.79:
                 result = "Not Safe"
             elif confidence is not None and 0.61 <= confidence <= 0.79:
