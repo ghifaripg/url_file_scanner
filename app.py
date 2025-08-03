@@ -120,7 +120,7 @@ async def predict_url(request: URLRequest):
             "confidence": f"{round(confidence * 100, 2)}%" if confidence is not None else None,
             "whois_safe": whois_safe,
             "features": dict(zip(feature_names, features.tolist())),
-            "reason": get_reason(result, confidence, whois_safe)
+            "reason": get_reason(result, confidence, whois_safe, safety_score)
         })
 
     except Exception as e:
