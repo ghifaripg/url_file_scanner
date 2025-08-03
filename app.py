@@ -77,7 +77,7 @@ async def predict_url(request: URLRequest):
                 if confidence:
                     base_score += int((1 - confidence) * 30)
                 if whois_safe:
-                    base_score += 20
+                    base_score += 40
                 else:
                     base_score -= 10
             else:  # prediction == 0 but confidence < 0.55
