@@ -44,6 +44,7 @@ async def predict_url(request: URLRequest):
     if not url:
         raise HTTPException(status_code=400, detail="No URL provided")
 
+    # Rule-based early detection
     if is_definitely_malicious_url(url):
         return JSONResponse(content={
             "result": "Malicious",
@@ -52,28 +53,50 @@ async def predict_url(request: URLRequest):
         })
 
     try:
+        # Extract features & run model prediction
         features = extract_features(url)[0]
         prediction = model.predict([features])[0]
         confidence = float(np.max(model.predict_proba([features])[0])) if hasattr(model, "predict_proba") else None
         parsed_domain = urlparse(url).netloc
 
-        # Skip WHOIS check if model is confident that it's legitimate
+        # WHOIS logic – skip if model is confident it's legitimate
         skip_whois = prediction == 0 and confidence is not None and confidence >= 0.65
-
         whois_safe = True if skip_whois else check_whois_safety(parsed_domain)
 
-        if prediction == 1:
-            if confidence is not None and confidence > 0.79:
-                result = "Not Safe"
-            elif confidence is not None and 0.61 <= confidence <= 0.79:
-                result = "Suspicious"
-            elif not whois_safe:
-                result = "Not Safe"
-            else:
-                result = "Suspicious"
-        else:
-            result = "Safe" if whois_safe else "Suspicious"
+        # -------------------------
+        # Safety Score Calculation
+        # -------------------------
+        # Score between 1–100; higher = safer
+        # Used to determine final result category
 
+        if prediction == 1:  # model thinks it's malicious
+            base_score = 20
+            if confidence:
+                base_score += int((1 - confidence) * 30)  # lower confidence = more suspicious
+            if whois_safe:
+                base_score += 20  # trust WHOIS a bit
+            else:
+                base_score -= 10  # penalize if WHOIS is bad
+        else:  # model thinks it's legitimate
+            base_score = 70
+            if confidence:
+                base_score += int(confidence * 20)  # bonus if confident
+            if not whois_safe:
+                base_score -= 20  # penalize if WHOIS is bad
+
+        safety_score = min(max(base_score, 1), 100)
+
+        # -------------------------
+        # Determine final result from score
+        # -------------------------
+        if safety_score > 65:
+            result = "Safe"
+        elif 45 <= safety_score <= 65:
+            result = "Suspicious"
+        else:
+            result = "Not Safe"
+
+        # Reasoning for output
         def get_reason(result, confidence, whois_safe):
             if result == "Suspicious":
                 if confidence and 0.61 <= confidence <= 0.79:
@@ -82,7 +105,7 @@ async def predict_url(request: URLRequest):
                     return "WHOIS data shows domain is likely unsafe."
                 return "Detected as borderline suspicious."
             elif result == "Not Safe":
-                return "Domain flagged by WHOIS or risky structure."
+                return "Model or WHOIS indicates high risk."
             elif result == "Safe":
                 if skip_whois:
                     return "Model confidently predicted as legitimate (>65%)."
@@ -91,6 +114,7 @@ async def predict_url(request: URLRequest):
 
         return JSONResponse(content={
             "result": result,
+            "safety_score": safety_score,
             "model_prediction": "Malicious" if prediction == 1 else "Legitimate",
             "confidence": f"{round(confidence * 100, 2)}%" if confidence is not None else None,
             "whois_safe": whois_safe,
