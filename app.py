@@ -99,19 +99,19 @@ async def predict_url(request: URLRequest):
         # Reasoning for output
         def get_reason(result, confidence, whois_safe, safety_score):
             base = f"Safety score: {safety_score} — "
-                if result == "Suspicious":
-                    if confidence and 0.61 <= confidence <= 0.79:
-                        return base + "Confidence score is moderate."
-                    elif not whois_safe:
-                        return base + "WHOIS data shows domain is likely unsafe."
-                    return base + "Detected as borderline suspicious."
-                elif result == "Not Safe":
-                    return base + "Model or WHOIS indicates high risk."
-                elif result == "Safe":
-                    if skip_whois:
-                        return base + "Model confidently predicted as legitimate (>65%)."
-                    return base + "Model and WHOIS check both passed."
-                return base + "Detected by rule-based system."
+            if result == "Suspicious":
+                if confidence and 0.61 <= confidence <= 0.79:
+                    return base + "Confidence score is moderate."
+                elif not whois_safe:
+                    return base + "WHOIS data shows domain is likely unsafe."
+                return base + "Detected as borderline suspicious."
+            elif result == "Not Safe":
+                return base + "Model or WHOIS indicates high risk."
+            elif result == "Safe":
+                if skip_whois:
+                    return base + "Model confidently predicted as legitimate (>65%)."
+                return base + "Model and WHOIS check both passed."
+            return base + "Detected by rule-based system."
 
         return JSONResponse(content={
             "result": result,
