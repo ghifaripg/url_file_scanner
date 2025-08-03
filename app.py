@@ -66,25 +66,28 @@ async def predict_url(request: URLRequest):
         # -------------------------
         # Safety Score Calculation
         # -------------------------
-        # Score between 1–100; higher = safer
-        # Used to determine final result category
+        # Trust the model if it predicts legitimate with high enough confidence
 
-        if prediction == 1:  # model thinks it's malicious
-            base_score = 20
-            if confidence:
-                base_score += int((1 - confidence) * 30)  # lower confidence = more suspicious
-            if whois_safe:
-                base_score += 20  # trust WHOIS a bit
-            else:
-                base_score -= 10  # penalize if WHOIS is bad
-        else:  # model thinks it's legitimate
-            base_score = 70
-            if confidence:
-                base_score += int(confidence * 20)  # bonus if confident
-            if not whois_safe:
-                base_score -= 20  # penalize if WHOIS is bad
+        if prediction == 0 and confidence and confidence >= 0.55:
+            # Trustworthy legitimate → full score
+            safety_score = 100
+        else:
+            if prediction == 1:  # model thinks it's malicious
+                base_score = 20
+                if confidence:
+                    base_score += int((1 - confidence) * 30)
+                if whois_safe:
+                    base_score += 20
+                else:
+                    base_score -= 10
+            else:  # prediction == 0 but confidence < 0.55
+                base_score = 70
+                if confidence:
+                    base_score += int(confidence * 20)
+                if not whois_safe:
+                    base_score -= 20
 
-        safety_score = min(max(base_score, 1), 100)
+            safety_score = min(max(base_score, 1), 100)
 
         # -------------------------
         # Determine final result from score
