@@ -249,7 +249,7 @@ def scan_file(file_path):
             reasons.append((verdict, 5))  # default weight
 
     top_reasons = sorted(reasons, key=lambda x: -x[1])
-    reason_summary = "High threat score due to: " + ", ".join([r[0] for r in top_reasons[:3]])
+    reason_summary = "Threat score due to: " + ", ".join([r[0] for r in top_reasons[:3]])
 
     return {
         "file_info": file_info,
