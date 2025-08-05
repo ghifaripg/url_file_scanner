@@ -148,6 +148,7 @@ async def predict_file(file: UploadFile = File(...)):
         return JSONResponse(content={
             "result": scan_result["classification"],
             "threat_score": scan_result["threat_score"],
+            "reason": scan_result["reason"],
             "features": {
                 "filename": file_info.get("path", file.filename),
                 "file_size": file_info.get("size"),
@@ -165,6 +166,7 @@ async def predict_file(file: UploadFile = File(...)):
             "indicators": indicators,
             "verdicts": scan_result["verdicts"]
         })
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

@@ -238,13 +238,28 @@ def scan_file(file_path):
     else:
         classification = "Safe"
 
+        # Create a reason string based on most impactful verdicts
+    reasons = []
+    for verdict in verdicts:
+        for key in weights:
+            if verdict.startswith(key):
+                reasons.append((key, weights[key]))
+                break
+        else:
+            reasons.append((verdict, 5))  # default weight
+
+    top_reasons = sorted(reasons, key=lambda x: -x[1])
+    reason_summary = "High threat score due to: " + ", ".join([r[0] for r in top_reasons[:3]])
+
     return {
         "file_info": file_info,
         "verdicts": verdicts,
         "indicators": indicators,
         "threat_score": threat_score,
-        "classification": classification
+        "classification": classification,
+        "reason": reason_summary
     }
+
 
 # def main():
 #     print("Malware Scanner v2.2 - Enhanced Detection Engine\n")
